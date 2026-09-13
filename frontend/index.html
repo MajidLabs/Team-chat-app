@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Chat</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="auth-view" class="auth-view">
+  <div class="auth-card">
+    <h1>Team Chat<span class="cursor">_</span></h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="login">Login</button>
+      <button class="tab-btn" data-tab="register">Register</button>
+    </div>
+
+    <form id="login-form" class="auth-form">
+      <input type="email" id="login-email" placeholder="Email" required />
+      <input type="password" id="login-password" placeholder="Password" required />
+      <button type="submit">Login</button>
+      <p class="error" id="login-error"></p>
+    </form>
+
+    <form id="register-form" class="auth-form hidden">
+      <input type="text" id="register-username" placeholder="Username" required />
+      <input type="email" id="register-email" placeholder="Email" required />
+      <input type="password" id="register-password" placeholder="Password (min 8 characters)" required />
+      <button type="submit">Create account</button>
+      <p class="error" id="register-error"></p>
+    </form>
+
+    <p class="hint">New here? Registering drops you into #general automatically -
+      open this page in a second window/browser and register a second account to test realtime chat.</p>
+  </div>
+</div>
+
+<div id="app-view" class="app-view hidden">
+  <aside class="sidebar">
+    <div class="me">
+      <span class="status-dot online"></span>
+      <span id="me-username"></span>
+      <button id="logout-btn" title="Logout">Logout</button>
+    </div>
+
+    <div class="notif-bell">
+      <button id="notif-btn">Notifications <span id="notif-count" class="badge hidden">0</span></button>
+      <div id="notif-panel" class="notif-panel hidden"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Channels</span>
+        <span class="section-actions">
+          <button id="browse-channel-btn" title="Browse public channels">Browse</button>
+          <button id="new-channel-btn" title="Create channel">+ New</button>
+        </span>
+      </div>
+      <ul id="channel-list" class="list"></ul>
+      <ul id="discover-list" class="list hidden"></ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>People</span></div>
+      <ul id="user-list" class="list"></ul>
+    </div>
+  </aside>
+
+  <main class="chat-pane">
+    <header class="chat-header">
+      <h2 id="current-channel-name">Select a channel</h2>
+    </header>
+
+    <div id="messages" class="messages"></div>
+
+    <div id="typing-indicator" class="typing-indicator hidden"></div>
+
+    <form id="message-form" class="message-form">
+      <input type="file" id="file-input" hidden />
+      <button type="button" id="attach-btn" title="Attach file">Attach</button>
+      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+    <div id="upload-preview" class="upload-preview hidden"></div>
+  </main>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/socket.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
