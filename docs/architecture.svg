@@ -1,0 +1,56 @@
+<svg viewBox="0 0 900 570" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6f6b5c"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="570" fill="#faf9f5"/>
+
+  <!-- Browsers -->
+  <rect x="80" y="30" width="200" height="60" rx="6" fill="#14161d"/>
+  <text x="180" y="66" text-anchor="middle" fill="#faf9f5" font-size="15" font-weight="700">Browser A</text>
+
+  <rect x="620" y="30" width="200" height="60" rx="6" fill="#14161d"/>
+  <text x="720" y="66" text-anchor="middle" fill="#faf9f5" font-size="15" font-weight="700">Browser B</text>
+
+  <line x1="185" y1="90" x2="395" y2="158" stroke="#6f6b5c" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="715" y1="90" x2="505" y2="158" stroke="#6f6b5c" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="225" y="128" font-size="11" fill="#6f6b5c">REST + WebSocket</text>
+  <text x="675" y="128" font-size="11" fill="#6f6b5c" text-anchor="end">REST + WebSocket</text>
+
+  <!-- Server -->
+  <rect x="250" y="160" width="400" height="140" rx="8" fill="#ffffff" stroke="#2a2e3a" stroke-width="2"/>
+  <text x="450" y="186" text-anchor="middle" font-size="14" font-weight="700" fill="#1b1d24">Node.js / Express</text>
+
+  <rect x="270" y="200" width="170" height="82" rx="6" fill="#f1efe8" stroke="#e3dfd3"/>
+  <text x="355" y="226" text-anchor="middle" font-size="12" font-weight="700" fill="#1b1d24">REST API</text>
+  <text x="355" y="246" text-anchor="middle" font-size="10" fill="#6f6b5c">auth · channels</text>
+  <text x="355" y="262" text-anchor="middle" font-size="10" fill="#6f6b5c">messages · files</text>
+
+  <rect x="460" y="200" width="170" height="82" rx="6" fill="#f1efe8" stroke="#e3dfd3"/>
+  <text x="545" y="226" text-anchor="middle" font-size="12" font-weight="700" fill="#1b1d24">Socket.IO</text>
+  <text x="545" y="246" text-anchor="middle" font-size="10" fill="#6f6b5c">messages · typing</text>
+  <text x="545" y="262" text-anchor="middle" font-size="10" fill="#6f6b5c">presence</text>
+
+  <line x1="380" y1="300" x2="225" y2="398" stroke="#6f6b5c" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="520" y1="300" x2="675" y2="398" stroke="#6f6b5c" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- PostgreSQL -->
+  <rect x="70" y="400" width="300" height="122" rx="8" fill="#4f8f86"/>
+  <text x="220" y="428" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">PostgreSQL</text>
+  <text x="220" y="450" text-anchor="middle" font-size="11" fill="#eaf3f1">users · channels · messages</text>
+  <text x="220" y="466" text-anchor="middle" font-size="11" fill="#eaf3f1">attachments · notifications</text>
+  <text x="220" y="482" text-anchor="middle" font-size="11" fill="#eaf3f1">refresh_tokens</text>
+  <text x="220" y="504" text-anchor="middle" font-size="10" fill="#d7e9e6" font-style="italic">durable - the single source of truth</text>
+
+  <!-- Redis -->
+  <rect x="530" y="400" width="300" height="122" rx="8" fill="#c4622d"/>
+  <text x="680" y="428" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">Redis</text>
+  <text x="680" y="450" text-anchor="middle" font-size="11" fill="#fbe8dd">Socket.IO adapter (pub/sub)</text>
+  <text x="680" y="466" text-anchor="middle" font-size="11" fill="#fbe8dd">presence sets</text>
+  <text x="680" y="482" text-anchor="middle" font-size="11" fill="#fbe8dd">rate-limit counters</text>
+  <text x="680" y="504" text-anchor="middle" font-size="10" fill="#f6d9c6" font-style="italic">ephemeral - disposable at any time</text>
+
+  <text x="450" y="550" text-anchor="middle" font-size="11" fill="#6f6b5c">REST for CRUD &amp; history retrieval · WebSocket for live push</text>
+</svg>
