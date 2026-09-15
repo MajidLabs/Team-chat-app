@@ -6,6 +6,7 @@ const env = require('./config/env');
 const { redis } = require('./config/redis');
 const errorHandler = require('./middleware/errorHandler');
 const createRateLimiter = require('./middleware/rateLimiter');
+const authenticate = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/users.routes');
@@ -34,10 +35,19 @@ app.get('/health', (req, res) => res.json({
   redis: redis.status === 'ready' ? 'up' : 'down',
 }));
 
-// Coarse, IP-keyed baseline on top of the more specific per-user limiters
-// applied inside individual routers (login, uploads, socket messages).
-const generalLimiter = createRateLimiter({ keyPrefix: 'rl:general', points: env.rateLimit.generalPer15Min, duration: 15 * 60 });
-app.use('/api', generalLimiter);
+// Coarse baseline on top of the more specific per-user limiters applied
+// inside individual routers (login, uploads, socket messages).
+//
+// `authenticate.optional` runs first so this limiter can key by user id.
+// It has to: the real `authenticate` lives inside each router, which mounts
+// *after* this line, so req.user would always be undefined here and every
+// request - authenticated or not - fell back to being keyed by IP.
+const generalLimiter = createRateLimiter({
+  keyPrefix: 'rl:general',
+  points: env.rateLimit.generalPer15Min,
+  duration: 15 * 60,
+});
+app.use('/api', authenticate.optional, generalLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

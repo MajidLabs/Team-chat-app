@@ -6,9 +6,6 @@ services:
       POSTGRES_USER: chatuser
       POSTGRES_PASSWORD: chatpass
       POSTGRES_DB: teamchat
-    # Standard host port. If you also run Postgres locally (outside Docker)
-    # on its default 5432, `docker compose up` will fail to bind this port -
-    # change the host side (e.g. "5433:5432") if that happens.
     ports:
       - "5432:5432"
     volumes:
@@ -23,11 +20,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: teamchat-redis
-    # Host side deliberately isn't the default 6379, so this doesn't collide
-    # with a Redis already running on the machine outside Docker. The
-    # backend always talks to "redis:6379" on Docker's internal network
-    # (below), so this mapping only matters if you want to reach this
-    # container's Redis from the host yourself (e.g. redis-cli -p 6380).
     ports:
       - "6380:6379"
     healthcheck:
@@ -53,8 +45,6 @@ services:
       MAX_FILE_SIZE_MB: 10
       RATE_LIMIT_MESSAGES_PER_MIN: 30
       RATE_LIMIT_LOGIN_PER_15MIN: 10
-      RATE_LIMIT_UPLOADS_PER_MIN: 20
-      RATE_LIMIT_GENERAL_PER_15MIN: 300
     ports:
       - "4000:4000"
     depends_on:

@@ -116,6 +116,15 @@ server instances.
   `removeSocket` never emit to sockets directly. This means behavior is
   identical whether there is one server instance or ten behind a load
   balancer.
+- That fan-out uses **`io.local.to(...)`, not `io.to(...)`**, and the
+  difference is not cosmetic. Redis pub/sub already delivers each
+  `presence:events` message to every process, so every process runs the
+  handler. A plain `io.to(...)` would hand the emit to the Socket.IO Redis
+  adapter, which re-broadcasts it cluster-wide - so with N instances each
+  client would receive N copies of the same `presence:update`, and the
+  "who shares a channel with this user" SQL join would run N times per
+  event. `io.local` keeps each process emitting only to its own sockets,
+  which is what makes the claim in the previous bullet actually true.
 - A user's presence is only broadcast to people who share a channel with
   them (a SQL join, not "everyone"), and on connect a client gets a
   `presence:snapshot` with the current status of everyone relevant, so the
@@ -155,6 +164,15 @@ instance, keyed by user ID where the user is known and by IP otherwise:
 | General    | 300 / 15 min      | every `/api/*` route, as a coarse baseline |
 
 All four are configurable via environment variables (see `.env.example`).
+
+The general limiter is mounted before any router, which is also before the
+`authenticate` middleware each router applies - so on its own it could only
+ever see an IP, never a user, and every request from one office NAT or VPN
+exit shared a single 300-request quota. It therefore runs behind
+`authenticate.optional`, which populates `req.user` from a valid bearer
+token and does nothing at all without one. A missing or invalid token is
+not an error there: routes that genuinely require auth still mount the
+strict `authenticate` themselves, so this can't weaken one.
 
 ## Redis outage behaviour
 
@@ -317,6 +335,15 @@ token doesn't check against, being a stateless JWT).
 
 - At handshake, the token's `exp` is stored on `socket.data.tokenExp` and a
   timer is scheduled for that moment.
+- The client schedules its own refresh from that same `exp`, reading the
+  claim out of the JWT it already holds (no signature check - it only
+  decides *when* to refresh; the server still verifies for real). It fires
+  once 60% of the remaining lifetime has elapsed. This used to be a
+  hardcoded 10-minute interval, which silently assumed
+  `JWT_ACCESS_EXPIRES_IN=15m`: with any shorter value the server's expiry
+  timer fired first and every socket was dropped and reconnected on a loop.
+  Deriving the delay means a 15-minute token refreshes at 9 minutes and a
+  20-second one at 12 seconds.
 - The client is expected to call `auth:refresh` with a freshly-issued
   access token before the timer fires. On success the timer is
   rescheduled against the new token's `exp`.
@@ -363,11 +390,6 @@ reader:
   production deployment. This is already environment-driven (see
   `.env.example`), so it's a deployment-time setting to change, not a code
   fix - flagged here so it isn't missed.
-- **The frontend's backend URL is hardcoded**, unlike CORS above:
-  `frontend/js/api.js` sets `API_BASE = 'http://localhost:4000'` directly in
-  the source rather than reading it from anything environment-driven (the
-  frontend is static files with no build step). Deploying anywhere other
-  than local dev means editing that line by hand first.
 - **Sockets now require periodic re-authentication** rather than staying
   privileged for the life of the connection - see "Socket auth lifecycle"
   above for the mechanism and its one remaining edge (a logged-out socket
@@ -385,6 +407,11 @@ reader:
   bundled Docker Compose setup, via a shared volume) but would need to move
   to S3-compatible object storage for a multi-instance deployment where any
   instance might serve any request.
+- **Shutdown closes sockets explicitly.** `httpServer.close()` alone waits
+  for open connections to end, and a live WebSocket never does - so
+  `SIGTERM` used to hang until Docker's kill timeout SIGKILLed the process,
+  skipping Redis cleanup entirely. `io.close()` now runs first, followed by
+  the Redis clients and the Postgres pool, with a 10-second backstop.
 - **Automated coverage is integration-level, not unit-level.**
   [`backend/test/integration.test.js`](backend/test/integration.test.js) runs
   against the real stack end to end (real Postgres, real Redis, two real

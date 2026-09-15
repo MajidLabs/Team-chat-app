@@ -53,6 +53,18 @@ module.exports = function registerMessageHandlers(io, socket) {
   socket.on('message:send', async (payload, callback) => {
     const { channelId, content, attachment } = payload || {};
 
+    // Validation before the limiter, not after: a malformed payload is
+    // rejected without ever reaching the database, so charging it against
+    // the user's send quota just means a buggy client can lock a legitimate
+    // user out of sending for a minute with requests the server did no work
+    // for.
+    if (!channelId || (!content && !attachment)) {
+      return callback?.({ ok: false, error: 'channelId and content or attachment are required' });
+    }
+    if (content && content.length > 10000) {
+      return callback?.({ ok: false, error: 'Message content exceeds 10,000 characters' });
+    }
+
     try {
       await messageLimiter.consume(userId);
     } catch (rejRes) {
@@ -63,13 +75,6 @@ module.exports = function registerMessageHandlers(io, socket) {
         return callback?.({ ok: false, error: 'Rate limit exceeded, slow down.' });
       }
       console.error('[socket] message rate limiter unavailable, failing open:', rejRes.message);
-    }
-
-    if (!channelId || (!content && !attachment)) {
-      return callback?.({ ok: false, error: 'channelId and content or attachment are required' });
-    }
-    if (content && content.length > 10000) {
-      return callback?.({ ok: false, error: 'Message content exceeds 10,000 characters' });
     }
 
     try {

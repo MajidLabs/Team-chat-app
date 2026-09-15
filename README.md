@@ -60,7 +60,10 @@ running it:
   normally checked only at handshake and trusted for the life of the
   connection. Here each socket carries a timer tied to the token's real
   expiry and must present a fresh one before it fires, or it's
-  disconnected - see [`ARCHITECTURE.md`](ARCHITECTURE.md#socket-auth-lifecycle).
+  disconnected. The *client's* refresh is scheduled from that same expiry
+  rather than a fixed interval, so the mechanism holds at any configured
+  token lifetime instead of only the default 15 minutes - see
+  [`ARCHITECTURE.md`](ARCHITECTURE.md#socket-auth-lifecycle).
 - **Attachments are claimed, not trusted.** `message:send` never takes a
   client-supplied file name/URL/MIME type at face value - it atomically
   claims a row in an `uploads` table that only exists if this exact user
@@ -172,6 +175,13 @@ below. [`CHECKLIST.md`](CHECKLIST.md) now has two additional manual checks
 from that audit - a disallowed file extension being rejected in the
 upload UI, and the socket surviving past 15 minutes on the new
 re-authentication lifecycle - neither run in a real browser yet.
+
+The frontend has since changed in two ways that this table predates, so it
+should be re-run rather than read as current: the Socket.IO client is
+loaded from the backend rather than a public CDN, and socket
+re-authentication is scheduled from the access token's real expiry rather
+than a fixed 10-minute timer. See "What changed since the last full pass"
+in [`CHECKLIST.md`](CHECKLIST.md).
 
 ## Project structure
 

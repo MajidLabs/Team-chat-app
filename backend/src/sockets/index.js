@@ -47,7 +47,16 @@ function initSockets(io) {
       const { userId, status, lastSeen } = JSON.parse(raw);
       const relatedUserIds = await getRelatedUserIds(userId);
       relatedUserIds.forEach((uid) => {
-        io.to(`user:${uid}`).emit('presence:update', { userId, status, lastSeen });
+        // `io.local` matters here and is easy to get wrong. Redis pub/sub
+        // already delivers this event to *every* server process, so each one
+        // runs this handler. A plain `io.to(...)` would then hand the emit to
+        // the Socket.IO Redis adapter, which re-broadcasts it cluster-wide -
+        // so with N instances every client would receive N copies of the same
+        // presence:update, and getRelatedUserIds would run N times per event.
+        // `io.local` restricts the emit to sockets connected to this process,
+        // which is exactly right: the fan-out across instances is already
+        // being done by the presence:events subscription itself.
+        io.local.to(`user:${uid}`).emit('presence:update', { userId, status, lastSeen });
       });
     } catch (err) {
       console.error('[sockets] failed to process presence event:', err);
