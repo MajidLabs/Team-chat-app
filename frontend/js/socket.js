@@ -43,13 +43,32 @@ function connectSocket({
   }
   stopReauthTimer();
 
-  socket = io(API_BASE, { auth: { token: Auth.getAccessToken() } });
+  // auth as a function (not a plain object) so every connection attempt -
+  // including Socket.IO's own automatic reconnection retries - reads the
+  // access token fresh, instead of resending whatever was current when this
+  // socket was first created.
+  socket = io(API_BASE, { auth: (cb) => cb({ token: Auth.getAccessToken() }) });
+
+  let refreshingAfterError = false;
 
   socket.on('connect', () => {
     startReauthTimer();
     onConnect?.();
   });
-  socket.on('connect_error', (err) => console.error('[socket] connect_error:', err.message));
+  socket.on('connect_error', async (err) => {
+    console.error('[socket] connect_error:', err.message);
+    // Most likely cause: the page loaded (or woke from sleep) with an access
+    // token that had already expired. REST calls self-heal via apiFetch's
+    // 401-retry, but this socket has no REST layer to piggyback on, so
+    // refresh proactively here too - the function-based auth above then
+    // picks up the new token on Socket.IO's next automatic retry. Guarded
+    // so repeated connect_error events (each backoff attempt) don't all
+    // fire refresh requests at once.
+    if (refreshingAfterError || !Auth.getRefreshToken()) return;
+    refreshingAfterError = true;
+    await tryRefresh();
+    refreshingAfterError = false;
+  });
   socket.on('auth:expired', (data) => {
     stopReauthTimer();
     onAuthExpired?.(data);

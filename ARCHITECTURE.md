@@ -363,6 +363,11 @@ reader:
   production deployment. This is already environment-driven (see
   `.env.example`), so it's a deployment-time setting to change, not a code
   fix - flagged here so it isn't missed.
+- **The frontend's backend URL is hardcoded**, unlike CORS above:
+  `frontend/js/api.js` sets `API_BASE = 'http://localhost:4000'` directly in
+  the source rather than reading it from anything environment-driven (the
+  frontend is static files with no build step). Deploying anywhere other
+  than local dev means editing that line by hand first.
 - **Sockets now require periodic re-authentication** rather than staying
   privileged for the life of the connection - see "Socket auth lifecycle"
   above for the mechanism and its one remaining edge (a logged-out socket
