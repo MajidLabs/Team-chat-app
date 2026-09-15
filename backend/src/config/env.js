@@ -17,6 +17,8 @@ module.exports = {
   rateLimit: {
     messagesPerMin: parseInt(process.env.RATE_LIMIT_MESSAGES_PER_MIN || '30', 10),
     loginPer15Min: parseInt(process.env.RATE_LIMIT_LOGIN_PER_15MIN || '10', 10),
+    uploadsPerMin: parseInt(process.env.RATE_LIMIT_UPLOADS_PER_MIN || '20', 10),
+    generalPer15Min: parseInt(process.env.RATE_LIMIT_GENERAL_PER_15MIN || '300', 10),
   },
   presenceOfflineGraceMs: parseInt(process.env.PRESENCE_OFFLINE_GRACE_MS || '5000', 10),
   presenceReconcileIntervalMs: parseInt(process.env.PRESENCE_RECONCILE_INTERVAL_MS || '30000', 10),

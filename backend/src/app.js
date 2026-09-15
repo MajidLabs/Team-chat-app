@@ -36,7 +36,7 @@ app.get('/health', (req, res) => res.json({
 
 // Coarse, IP-keyed baseline on top of the more specific per-user limiters
 // applied inside individual routers (login, uploads, socket messages).
-const generalLimiter = createRateLimiter({ keyPrefix: 'rl:general', points: 300, duration: 15 * 60 });
+const generalLimiter = createRateLimiter({ keyPrefix: 'rl:general', points: env.rateLimit.generalPer15Min, duration: 15 * 60 });
 app.use('/api', generalLimiter);
 
 app.use('/api/auth', authRoutes);
