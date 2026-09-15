@@ -21,6 +21,17 @@ messaging, and a self-healing reconcile pass - see `ARCHITECTURE.md`,
 new manual check in step 6, not yet run against a real outage. Still open:
 a dedicated pass on notification-concurrency edge cases.
 
+A later correctness pass fixed six more things, none of them yet re-run in
+a real browser: the frontend loads the Socket.IO client from the backend
+instead of a public CDN (a blocked or slow CDN left `io` undefined and the
+UI stuck with an empty channel list right after login), the client's socket
+re-authentication is derived from the access token's real expiry instead of
+a fixed 10-minute timer, presence fan-out no longer sends one duplicate per
+server instance, the app-wide rate limiter can key by user instead of
+always falling back to IP, the upload and general limiters are
+environment-driven like the other two, and `SIGTERM` now closes sockets and
+Redis instead of hanging until Docker kills the process.
+
 ## 0. Prerequisites
 
 - [ ] `node -v` reports 20 or higher
@@ -92,7 +103,10 @@ python3 -m http.server 5500
 Open `http://localhost:5500` in two separate browser windows (or one normal
 + one private/incognito window, so they don't share `localStorage`).
 
-- [ ] Registering an account in each window succeeds; both land in `#general`
+- [ ] Registering an account in each window succeeds; both land in
+      `#general` immediately, with no manual refresh needed
+- [ ] The browser console shows no `io is not defined` error, and no alert
+      appears about the realtime client failing to load
 - [ ] A message typed in window A appears in window B with no refresh
 - [ ] Typing (without sending) in window A shows "... is typing" in window B
 - [ ] Closing window A flips their status dot to offline in window B after
@@ -110,18 +124,30 @@ Open `http://localhost:5500` in two separate browser windows (or one normal
 
 ## 4a. Optional: socket re-authentication (longer than the rest of this pass)
 
-The frontend re-authenticates each socket automatically every 10 minutes,
-well ahead of the access token's 15-minute expiry (see `ARCHITECTURE.md`,
-"Socket auth lifecycle"). Skippable for a quick pass; worth doing once to
-actually see it rather than take it on faith:
+The frontend re-authenticates each socket once 60% of the access token's
+remaining lifetime has elapsed - 9 minutes for the default 15-minute token
+(see `ARCHITECTURE.md`, "Socket auth lifecycle"). Skippable for a quick
+pass; worth doing once to actually see it rather than take it on faith:
 
 - [ ] Leave a browser window open and idle for >15 minutes, then send a
       message. It should still work - the socket should never have
       silently disconnected in the meantime.
-- [x] Faster version: temporarily set `JWT_ACCESS_EXPIRES_IN=20s` in
+- [ ] Faster version: temporarily set `JWT_ACCESS_EXPIRES_IN=20s` in
       `.env`, restart the backend, and confirm the frontend still works
       well past 20 seconds without dropping. Revert the env change
-      afterward.
+      afterward. Keep the browser console open while you wait: it should
+      stay quiet. A repeating "session expired without a successful reauth"
+      warning means the socket *is* being dropped and silently reconnected,
+      which is exactly what this check exists to catch.
+
+      Unticked deliberately. This check could not pass as written before:
+      the client refreshed on a fixed 10-minute timer no matter what
+      `JWT_ACCESS_EXPIRES_IN` was set to, so a 20-second token meant the
+      server disconnected the socket roughly every 20 seconds and
+      `handleAuthExpired` quietly reconnected it - which looks like
+      "still works" from the UI and is why the box was ticked. The refresh
+      delay is now derived from the token's own `exp`, but that fix has not
+      been run in a real browser yet.
 
 ## 5. Docker Compose path (if you use it)
 

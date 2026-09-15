@@ -63,7 +63,11 @@ function handleUploadErrors(next) {
   };
 }
 
-const uploadLimiter = createRateLimiter({ keyPrefix: 'rl:upload', points: env.rateLimit.uploadsPerMin, duration: 60 });
+const uploadLimiter = createRateLimiter({
+  keyPrefix: 'rl:upload',
+  points: env.rateLimit.uploadsPerMin,
+  duration: 60,
+});
 
 // The file is uploaded on its own first; the returned metadata is then
 // attached to a message via the 'message:send' socket event. This keeps

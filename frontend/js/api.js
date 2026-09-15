@@ -1,6 +1,4 @@
-// Point this at wherever the backend is running. Hardcoded for local dev -
-// change it (e.g. to your server's domain/IP) before deploying anywhere
-// else; see ARCHITECTURE.md "Known limitations".
+// Point this at wherever the backend is running.
 const API_BASE = 'http://localhost:4000';
 
 const Auth = {
