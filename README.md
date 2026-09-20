@@ -243,5 +243,4 @@ limits, and rate-limit thresholds.
 
 ## License
 
-[MIT](LICENSE) - fill in your name in the copyright line if you use this as
-a base for your own portfolio project.
+[MIT](LICENSE)
