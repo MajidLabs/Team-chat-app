@@ -18,6 +18,14 @@ For how it's built and why (data flow, event/API reference, trade-offs), see
 
 ![Architecture diagram: two browsers connect over REST and WebSocket to a Node.js/Express server, which splits into a REST API and a Socket.IO layer, backed by PostgreSQL for durable storage and Redis for the Socket.IO adapter, presence, and rate limiting](docs/architecture.svg)
 
+
+## Demo
+
+Two separate browser sessions (Alice and Bob), same #general channel — a
+message sent in one appears instantly in the other, no refresh.
+
+![Two-user real-time chat demo](docs/screenshots/demo-realtime-chat.gif)
+
 ## Features
 
 - [x] WebSocket messaging (Socket.IO) - text and file messages, delivered live
