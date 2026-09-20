@@ -23,8 +23,6 @@ async function isChannelMember(userId, channelId) {
 module.exports = function registerMessageHandlers(io, socket) {
   const { userId, username } = socket.data;
 
-  // Lets a socket pick up realtime messages for a channel it was added to
-  // after connecting (e.g. joining a public channel mid-session).
   socket.on('channel:join', async (channelId, callback) => {
     try {
       const member = await isChannelMember(userId, channelId);
@@ -36,11 +34,6 @@ module.exports = function registerMessageHandlers(io, socket) {
     }
   });
 
-  // Tracks which channel the client currently has open, so the notification
-  // service can skip members who are already looking at the message live.
-  // Verified server-side rather than trusted outright - a channelId the
-  // socket isn't actually a member of should never be able to affect
-  // notification suppression.
   socket.on('channel:active', async (channelId) => {
     if (!channelId) {
       socket.data.activeChannelId = null;
@@ -53,11 +46,6 @@ module.exports = function registerMessageHandlers(io, socket) {
   socket.on('message:send', async (payload, callback) => {
     const { channelId, content, attachment } = payload || {};
 
-    // Validation before the limiter, not after: a malformed payload is
-    // rejected without ever reaching the database, so charging it against
-    // the user's send quota just means a buggy client can lock a legitimate
-    // user out of sending for a minute with requests the server did no work
-    // for.
     if (!channelId || (!content && !attachment)) {
       return callback?.({ ok: false, error: 'channelId and content or attachment are required' });
     }
@@ -65,16 +53,17 @@ module.exports = function registerMessageHandlers(io, socket) {
       return callback?.({ ok: false, error: 'Message content exceeds 10,000 characters' });
     }
 
-    try {
-      await messageLimiter.consume(userId);
-    } catch (rejRes) {
-      // Same distinction as the REST rate limiter (see rateLimiter.js): an
-      // Error means Redis is unreachable, so fail open; anything else is a
-      // genuine over-the-limit rejection.
-      if (!(rejRes instanceof Error)) {
-        return callback?.({ ok: false, error: 'Rate limit exceeded, slow down.' });
+    if (redis.status !== 'ready') {
+      console.error('[socket] message rate limiter unavailable (redis not ready), failing open');
+    } else {
+      try {
+        await messageLimiter.consume(userId);
+      } catch (rejRes) {
+        if (!(rejRes instanceof Error)) {
+          return callback?.({ ok: false, error: 'Rate limit exceeded, slow down.' });
+        }
+        console.error('[socket] message rate limiter unavailable, failing open:', rejRes.message);
       }
-      console.error('[socket] message rate limiter unavailable, failing open:', rejRes.message);
     }
 
     try {
@@ -88,11 +77,6 @@ module.exports = function registerMessageHandlers(io, socket) {
       const messageId = uuidv4();
       const type = attachment ? 'file' : 'text';
 
-      // Message insert + upload claim + attachment insert all succeed or
-      // fail together. Without a transaction, claiming the upload before
-      // the message row exists would fail its foreign key, and claiming it
-      // after would risk a rejected attachment leaving a stray text message
-      // behind - either way the client's ack wouldn't match what's in the DB.
       const client = await pool.connect();
       let createdAt;
       let attachmentRow = null;
@@ -107,9 +91,6 @@ module.exports = function registerMessageHandlers(io, socket) {
         createdAt = rows[0].created_at;
 
         if (attachment) {
-          // Only a row this exact user uploaded and hasn't already attached
-          // to a different message can be claimed - never whatever
-          // file_name/file_url/mime_type the client sent alongside the id.
           const { rows: claimRows } = await client.query(
             `UPDATE uploads SET message_id = $1
              WHERE id = $2 AND owner_id = $3 AND message_id IS NULL

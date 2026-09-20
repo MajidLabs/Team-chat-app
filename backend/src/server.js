@@ -60,7 +60,16 @@ async function shutdown(signal) {
   forceExit.unref();
 
   try {
-    await new Promise((resolve) => io.close(resolve));
+    // io.close() has been observed to hang indefinitely in this environment
+    // (seemingly tied to a client reconnecting at the same moment), so it's
+    // raced against its own short timeout rather than trusted to always
+    // resolve - the rest of shutdown proceeds either way.
+    await Promise.race([
+      new Promise((resolve) => io.close(resolve)),
+      new Promise((resolve) => setTimeout(resolve, 3000)).then(() =>
+        console.error('[server] io.close() did not resolve within 3s, continuing shutdown anyway')
+      ),
+    ]);
     // io.close() closes the attached HTTP server too, so this is normally a
     // no-op; the callback's error is ignored deliberately rather than being
     // logged as a failure on a path that already succeeded.

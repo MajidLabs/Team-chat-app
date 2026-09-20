@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: chatpass
       POSTGRES_DB: teamchat
     ports:
-      - "5432:5432"
+      -     "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -15,7 +15,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U chatuser -d teamchat"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   redis:
     image: redis:7-alpine

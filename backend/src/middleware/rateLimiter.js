@@ -9,15 +9,15 @@ function createRateLimiter({ keyPrefix, points, duration }) {
 
   return async function rateLimitMiddleware(req, res, next) {
     const key = req.user ? req.user.id : req.ip;
+
+    if (redis.status !== 'ready') {
+      return next();
+    }
+
     try {
       await limiter.consume(key);
       next();
     } catch (rejRes) {
-      // rate-limiter-flexible rejects with an Error when Redis itself is
-      // unreachable, and with a RateLimiterRes (plain result object, not
-      // an Error) when the limit was genuinely exceeded. Fail open on the
-      // former - Redis holds nothing durable in this app (ARCHITECTURE.md),
-      // so losing rate-limiting during an outage beats losing the feature.
       if (rejRes instanceof Error) {
         console.error(`[rateLimiter:${keyPrefix}] Redis unavailable, failing open:`, rejRes.message);
         return next();

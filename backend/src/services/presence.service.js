@@ -3,12 +3,6 @@ const env = require('../config/env');
 
 const PRESENCE_CHANNEL = 'presence:events';
 
-// A user can have several sockets open at once (multiple tabs/devices), so
-// presence is tracked as a Redis SET of socket ids per user rather than a
-// single flag. The user is "online" while the set is non-empty. Each script
-// reports the set's size *before* the mutation so the caller can tell,
-// atomically, whether this was the transition that changed online status -
-// two sockets connecting back to back must not both fire an "online" event.
 const ADD_SCRIPT = `
 local before = redis.call('SCARD', KEYS[1])
 redis.call('SADD', KEYS[1], ARGV[1])
@@ -41,10 +35,6 @@ async function removeSocket(userId, socketId) {
 
     setTimeout(async () => {
       try {
-        // Re-check against the live set, not a flag set back when this
-        // timer was scheduled - if any socket (including a reconnect that
-        // landed on a different server instance) is present now, this was
-        // a blip, not a real transition, and nothing should be published.
         const stillZero = (await redis.scard(key)) === 0;
         if (stillZero) {
           await presencePubClient.publish(PRESENCE_CHANNEL, JSON.stringify({ userId, status: 'offline', lastSeen }));
@@ -64,6 +54,16 @@ async function isOnline(userId) {
 
 async function getStatuses(userIds) {
   if (!userIds || userIds.length === 0) return {};
+
+  // Redis unreachable: return everyone as offline instead of letting the
+  // pipeline throw and taking the whole caller (socket presence:snapshot,
+  // or the REST /api/users list) down with it.
+  if (redis.status !== 'ready') {
+    const statuses = {};
+    userIds.forEach((id) => { statuses[id] = 'offline'; });
+    return statuses;
+  }
+
   const pipeline = redis.pipeline();
   userIds.forEach((id) => pipeline.scard(`presence:sockets:${id}`));
   const results = await pipeline.exec();
@@ -80,22 +80,12 @@ async function getLastSeen(userId) {
 
 let reconciling = false;
 
-// addSocket/removeSocket can each throw partway through if Redis drops
-// mid-call (see ARCHITECTURE.md, "Redis outage behaviour"), leaving a
-// presence:sockets:* SET out of sync with who's actually connected - in
-// the worst case, a user who disconnected stays "online" forever, since
-// nothing else ever revisits that key. This treats Socket.IO's own socket
-// list as ground truth (the Redis adapter already keeps it consistent
-// across every server instance) and makes Redis match it. Meant to run on
-// a timer and again whenever Redis reports 'ready' after being down - if
-// Redis is still unreachable when it runs, it just logs and waits for the
-// next tick rather than making anything worse.
 async function reconcile(io) {
-  if (reconciling) return; // a previous run is still in flight; skip this tick
+  if (reconciling) return;
   reconciling = true;
   try {
     const sockets = await io.fetchSockets();
-    const connectedByUser = new Map(); // userId -> Set<socketId>, per Socket.IO
+    const connectedByUser = new Map();
     for (const s of sockets) {
       for (const room of s.rooms) {
         if (!room.startsWith('user:')) continue;
@@ -113,7 +103,6 @@ async function reconcile(io) {
       keys.forEach((k) => redisOnlineUserIds.add(k.slice('presence:sockets:'.length)));
     } while (cursor !== '0');
 
-    // Case 1: Redis says online, nobody's actually connected anywhere.
     for (const userId of redisOnlineUserIds) {
       if (connectedByUser.has(userId)) continue;
       const lastSeen = new Date().toISOString();
@@ -123,7 +112,6 @@ async function reconcile(io) {
       console.warn(`[presence] reconcile: corrected stale-online for user ${userId}`);
     }
 
-    // Case 2: actually connected, but Redis never heard about it.
     for (const [userId, socketIds] of connectedByUser) {
       if (redisOnlineUserIds.has(userId)) continue;
       await redis.sadd(`presence:sockets:${userId}`, ...socketIds);

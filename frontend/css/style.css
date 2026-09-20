@@ -122,6 +122,7 @@ input:focus, button:focus-visible {
   display: flex;
   flex-direction: column;
   padding: 16px 0;
+  overflow-y: auto;
 }
 
 .me {
