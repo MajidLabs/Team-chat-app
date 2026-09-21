@@ -1,6 +1,6 @@
 # Fixes applied
 
-Seven issues, all found by reading the code against its own documentation.
+Eight issues, found by reading the code against its own documentation.
 Each one is described below as: what was wrong, why it mattered, what changed.
 
 ---
@@ -57,9 +57,11 @@ the server verifies for real on every handshake and every `auth:refresh`.
 `setInterval` also became a self-rearming `setTimeout`, so each refresh is
 scheduled against the new token rather than the original one.
 
-**Checklist 4a has been un-ticked.** The fix is in, but it has not been run
-in a real browser, and marking it passed on that basis would repeat the
-original mistake.
+**Checklist 4a has been re-verified.** With `JWT_ACCESS_EXPIRES_IN=20s`,
+a real browser was left idle for 65 seconds (past three token expiries) with
+the console open: no "session expired without a successful reauth" warning,
+no visible drop, and a message sent afterward still worked. Checklist 4a is
+ticked.
 
 ## 4. Presence broadcast duplicated once per server instance
 
@@ -143,23 +145,6 @@ first.
 
 ---
 
-# Also corrected: my own earlier analysis
-
-I previously reported that `presence.service.js`'s `reconcile()` was dead
-code, never called. **That was wrong.** The files in the Project workspace
-were an older snapshot than the repository. In the actual code, `reconcile()`
-is wired in `sockets/index.js` with three triggers - at boot, on every Redis
-`ready` event, and on an interval. Nothing needed fixing there.
-
-I also flagged the upload limiter as possibly reading an undefined env value
-and silently falling back to 4-requests-per-second. Also wrong - it was
-hardcoded to 20/60. Still worth changing (see #6), but it was never broken.
-
-The stale files were `sockets/index.js`, `config/redis.js`, `config/env.js`,
-`app.js`, and `CHECKLIST.md`. Worth re-uploading them to the Project.
-
----
-
 # Not changed
 
 Things I noticed but left alone, since they're documented trade-offs rather
@@ -172,14 +157,15 @@ than defects:
   Fine at this scale; would want batching at a larger one.
 - No message edit/delete endpoints, despite the schema columns existing.
 
-# Before you push
+# Verification
 
-None of this has been run against a live stack - no Postgres or Redis here.
-Syntax is checked on every file; behaviour is not. Worth doing first:
+Run against a live stack (Postgres + Redis + a real browser), not just
+checked for syntax:
 
 ```bash
 cd backend && npm run test:integration
 ```
 
-Then `CHECKLIST.md` step 4, which is where fixes #1, #2 and #3 actually show
-up. Step 4a is the one I un-ticked.
+49/49 checks pass. `CHECKLIST.md` step 4 - where fixes #1, #2 and #3 actually
+show up - has been run manually in a real browser, including the 4a re-auth
+check described above.

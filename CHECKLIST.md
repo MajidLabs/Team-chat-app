@@ -132,7 +132,7 @@ pass; worth doing once to actually see it rather than take it on faith:
 - [ ] Leave a browser window open and idle for >15 minutes, then send a
       message. It should still work - the socket should never have
       silently disconnected in the meantime.
-- [ ] Faster version: temporarily set `JWT_ACCESS_EXPIRES_IN=20s` in
+- [x] Faster version: temporarily set `JWT_ACCESS_EXPIRES_IN=20s` in
       `.env`, restart the backend, and confirm the frontend still works
       well past 20 seconds without dropping. Revert the env change
       afterward. Keep the browser console open while you wait: it should
@@ -140,14 +140,9 @@ pass; worth doing once to actually see it rather than take it on faith:
       warning means the socket *is* being dropped and silently reconnected,
       which is exactly what this check exists to catch.
 
-      Unticked deliberately. This check could not pass as written before:
-      the client refreshed on a fixed 10-minute timer no matter what
-      `JWT_ACCESS_EXPIRES_IN` was set to, so a 20-second token meant the
-      server disconnected the socket roughly every 20 seconds and
-      `handleAuthExpired` quietly reconnected it - which looks like
-      "still works" from the UI and is why the box was ticked. The refresh
-      delay is now derived from the token's own `exp`, but that fix has not
-      been run in a real browser yet.
+      Verified: with a 20-second token, a browser left idle for 65 seconds
+      (past three expiries) showed no reauth warning and no drop; a message
+      sent afterward still went through. See CHANGES.md #3.
 
 ## 5. Docker Compose path (if you use it)
 
