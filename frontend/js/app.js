@@ -257,8 +257,8 @@ function renderMessageEl(m) {
     const isImage = (m.attachment.mimeType || '').startsWith('image/');
     const url = `${API_BASE}${m.attachment.fileUrl}`;
     attachmentHtml = isImage
-      ? `<a href="${url}" target="_blank" rel="noopener"><img class="attachment-img" src="${url}" alt="${escapeHtml(m.attachment.fileName)}" /></a>`
-      : `<a href="${url}" target="_blank" rel="noopener" class="attachment-file">${escapeHtml(m.attachment.fileName)}</a>`;
+      ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener"><img class="attachment-img" src="${escapeHtml(url)}" alt="${escapeHtml(m.attachment.fileName)}" /></a>`
+      : `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="attachment-file">${escapeHtml(m.attachment.fileName)}</a>`;
   }
 
   div.innerHTML = `
@@ -270,11 +270,13 @@ function renderMessageEl(m) {
 }
 
 function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
-
 function handleIncomingMessage(msg) {
   if (msg.channelId === state.currentChannelId) {
     const box = el('messages');

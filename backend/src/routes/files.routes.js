@@ -85,15 +85,18 @@ router.post(
 
     const uploadId = uuidv4();
     const fileUrl = `/${env.uploadDir}/${req.file.filename}`;
+    const safeName = path
+      .basename(req.file.originalname)
+      .replace(/[\u0000-\u001f"'<>`\\]/g, '_');
     await pool.query(
       `INSERT INTO uploads (id, owner_id, file_name, file_url, mime_type, file_size)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [uploadId, req.user.id, req.file.originalname, fileUrl, req.file.mimetype, req.file.size]
+            [uploadId, req.user.id, safeName, fileUrl, req.file.mimetype, req.file.size]
     );
 
     res.status(201).json({
       id: uploadId,
-      fileName: req.file.originalname,
+      fileName: safeName,
       fileUrl,
       mimeType: req.file.mimetype,
       fileSize: req.file.size,
