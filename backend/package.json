@@ -22,7 +22,7 @@
     "helmet": "^7.1.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.1.1",
+    "multer": "^2.4.0",
     "pg": "^8.12.0",
     "rate-limiter-flexible": "^5.0.3",
     "socket.io": "^4.7.5",
@@ -30,5 +30,8 @@
   },
   "devDependencies": {
     "socket.io-client": "^4.7.5"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }
