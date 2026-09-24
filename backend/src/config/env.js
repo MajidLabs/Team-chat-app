@@ -1,13 +1,29 @@
 require('dotenv').config();
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+
+// These two have an insecure hardcoded fallback below, for local dev
+// convenience only. If NODE_ENV=production and the real secret isn't set,
+// failing fast here is much better than silently signing every JWT with a
+// value that's sitting in this file, in a public repo.
+function requireInProduction(value, envVarName, devDefault) {
+  if (value) return value;
+  if (nodeEnv === 'production') {
+    throw new Error(
+      `${envVarName} must be set when NODE_ENV=production - refusing to start with an insecure default.`,
+    );
+  }
+  return devDefault;
+}
+
 module.exports = {
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   port: parseInt(process.env.PORT || '4000', 10),
   databaseUrl: process.env.DATABASE_URL || 'postgresql://chatuser:chatpass@localhost:5432/teamchat',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwt: {
-    accessSecret: process.env.JWT_ACCESS_SECRET || 'dev_access_secret',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret',
+    accessSecret: requireInProduction(process.env.JWT_ACCESS_SECRET, 'JWT_ACCESS_SECRET', 'dev_access_secret'),
+    refreshSecret: requireInProduction(process.env.JWT_REFRESH_SECRET, 'JWT_REFRESH_SECRET', 'dev_refresh_secret'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },

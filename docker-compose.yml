@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: chatpass
       POSTGRES_DB: teamchat
     ports:
-      -     "5433:5432"
+      -     "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     container_name: teamchat-redis
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
