@@ -26,6 +26,25 @@ message sent in one appears instantly in the other, no refresh.
 
 ![Two-user real-time chat demo](docs/screenshots/demo-realtime-chat.gif)
 
+## Deployment
+
+This project was deployed and verified on a real VPS (HTTPS, dedicated
+domain). The instance is not kept running, so there is no public demo
+link - the GIF above shows the realtime behaviour.
+
+Verified on that deployment:
+
+- **Backend:** `/health` reported `ok` with Redis up over HTTPS, the Socket.IO
+  client was served from the same origin, `CLIENT_ORIGIN` was set to the real
+  domain, and the frontend had no `localhost` references left.
+- **Two-browser pass** ([`CHECKLIST.md`](CHECKLIST.md) step 4, two registered
+  accounts): live messaging, typing indicators, online/offline presence,
+  DMs, file attachments, disallowed-extension rejection, and rate limiting
+  all behaved as documented.
+
+Deployment-specific details (single instance, uploads on local disk, CORS
+setting) are in [`ARCHITECTURE.md`](ARCHITECTURE.md#deployment).
+
 ## Features
 
 - [x] WebSocket messaging (Socket.IO) - text and file messages, delivered live

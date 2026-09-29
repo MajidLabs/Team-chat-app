@@ -364,6 +364,28 @@ closer to session tokens) or shortening `JWT_ACCESS_EXPIRES_IN` - both
 real options, neither implemented here since 15 minutes is already a fairly
 tight bound for a project this size.
 
+## Deployment
+
+The project was deployed and verified on a real VPS using the bundled
+`docker-compose.yml` (Postgres, Redis, backend), served over HTTPS on a
+dedicated domain. That instance is no longer kept running.
+
+- **Single instance.** Same topology as the Docker Compose setup described
+  above, so the sticky-session concern in "Scaling notes" did not apply.
+- **CORS was restricted to the real origin.** `docker-compose.yml` set
+  `CLIENT_ORIGIN` to the deployment's domain. The `*` default exists only
+  in `backend/.env.example`.
+- **Same-origin Socket.IO client.** The frontend loads the client from the
+  backend (`/socket.io/socket.io.js`, verified to return `200`) and
+  contains no `localhost` references.
+- **Health check.** `GET /health` returned `{"ok":true,...,"redis":"up"}`.
+- **Manual realtime pass.** [`CHECKLIST.md`](CHECKLIST.md) step 4 was run
+  against the deployment with two registered accounts in two browser
+  windows (messaging, typing, presence, DMs, file attachments, upload
+  rejection, rate limiting).
+- **Uploads were on the server's local disk**, as described in "File
+  sharing" and "Known limitations" - unchanged by deployment.
+
 ## Scaling notes
 
 The Redis adapter solves cross-instance **broadcast** (an `emit` on server A
@@ -389,7 +411,8 @@ reader:
   of the box, but should be set to the real frontend origin for any
   production deployment. This is already environment-driven (see
   `.env.example`), so it's a deployment-time setting to change, not a code
-  fix - flagged here so it isn't missed.
+  fix. The verified deployment set it to its real domain - see
+  "Deployment" above.
 - **Sockets now require periodic re-authentication** rather than staying
   privileged for the life of the connection - see "Socket auth lifecycle"
   above for the mechanism and its one remaining edge (a logged-out socket
