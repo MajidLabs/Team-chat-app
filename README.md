@@ -94,7 +94,7 @@ Redis just needs to be running (`redis-server`) and reachable at the `REDIS_URL`
 |---|---|---|
 | Automated (local) | 49 integration checks against the real stack: live delivery, presence, notifications, file upload, attachment ownership, socket re-authentication, database race-safety, rate limiting, token revocation | Pass |
 | Browser (local, Docker Compose) | Two windows, one account each: live messages, typing indicator, offline status, live DM, file preview, rate-limit error | Pass |
-| Real server (VPS, 2026-09-29) | Containers healthy, `/health` reports Redis up, HTTPS via Cloudflare Tunnel, two accounts registered, messages exchanged live | Pass |
+| Real server (VPS, 2026-09-29) | Containers healthy, `/health` reports Redis up, HTTPS via Cloudflare Tunnel, two accounts registered and messages exchanged live, integration suite (49 checks), browser checks, Redis-outage check, real reboot | Pass |
 
 Run it yourself:
 
@@ -107,9 +107,9 @@ The step-by-step manual pass, including the parts only a human eye can check, is
 
 ### Details
 
-**Local browser pass.** Done against the Docker Compose stack, before the latest security/reliability changes. Since then the Socket.IO client is served by the backend instead of a public CDN, and socket re-authentication is scheduled from the token's real expiry. [CHECKLIST.md](CHECKLIST.md) lists these plus two new manual checks (a disallowed file extension rejected in the upload UI; a socket surviving past 15 minutes on the re-auth lifecycle), queued for the next browser pass.
+**Local browser pass.** Done against the Docker Compose stack, before the latest security/reliability changes. Since then the Socket.IO client is served by the backend instead of a public CDN, and socket re-authentication is scheduled from the token's real expiry. [CHECKLIST.md](CHECKLIST.md) lists these plus two new manual checks (a disallowed file extension rejected in the upload UI; a socket surviving past 15 minutes on the re-auth lifecycle), which were run in the browser pass on the server.
 
-**Real-server deployment.** The stack was deployed on a VPS to confirm it runs outside a development machine, served over HTTPS through a Cloudflare Tunnel and nginx. This was a verification deployment, not a maintained production service, so it may not stay online. The integration suite and the remaining browser, Redis-outage and reboot checks are queued for the server environment. The layout is described in [Deployment topology](ARCHITECTURE.md#deployment-topology-as-verified).
+**Real-server deployment.** The stack was deployed on a VPS to confirm it runs outside a development machine, served over HTTPS through a Cloudflare Tunnel and nginx. This was a verification deployment, not a maintained production service, so it may not stay online. The integration suite, the browser checks, the Redis-outage check and a real reboot were all run there. The layout is described in [Deployment topology](ARCHITECTURE.md#deployment-topology-as-verified).
 
 ## Project structure
 

@@ -92,7 +92,7 @@ Redis backs three things in this app (the Socket.IO adapter, presence, and rate 
 **Open items** (documented rather than glossed over):
 
 - A user who connects mid-outage receives an empty `presence:snapshot`, and nothing re-sends a corrected one once Redis recovers. They pick up everyone else's real status as each person's status next changes. Closing this fully would need either a Postgres-querying dependency in `reconcile()` or per-socket retry listeners with their own cleanup, judged not worth the complexity for a narrow, self-resolving edge case.
-- The Redis adapter's same-instance behaviour during an outage is the working assumption (delivery to sockets on the same instance doesn't depend on the publish succeeding, which matters since the project runs one instance via Docker Compose). It is queued for direct verification in [CHECKLIST.md](CHECKLIST.md), step 6, and should be confirmed the moment more than one instance is in play.
+- The Redis adapter's same-instance behaviour during an outage rests on the assumption that delivery to sockets on the same instance doesn't depend on the publish succeeding, which matters since the project runs one instance via Docker Compose. It was exercised by the Redis-outage check on the test deployment ([CHECKLIST.md](CHECKLIST.md), step 6), and should be re-confirmed the moment more than one instance is in play.
 
 ## File sharing
 
@@ -174,7 +174,7 @@ Browser -HTTPS-> Cloudflare (proxied) -> Cloudflare Tunnel (cloudflared on the V
                                                  backend -> postgres, redis (compose network)
 ```
 
-**Checked on the server:** all three containers start healthy under Docker Compose; `GET /health` returns `"ok":true` with `"redis":"up"`; the site opens over HTTPS in a browser; two accounts register and land in `#general`; messages flow between them.
+**Checked on the server:** all three containers start healthy under Docker Compose; `GET /health` returns `"ok":true` with `"redis":"up"`; the site opens over HTTPS in a browser; two accounts register and land in `#general`; messages flow between them. The rest of the verification pass was run there too: the 49-check integration suite, the typing / presence / DM / file-upload / rate-limit browser checks, the Redis-outage check ([CHECKLIST.md](CHECKLIST.md), step 6), and a real reboot test.
 
 **Design of the deployment**
 
@@ -183,7 +183,7 @@ Browser -HTTPS-> Cloudflare (proxied) -> Cloudflare Tunnel (cloudflared on the V
 - **Ports.** The backend is published on `127.0.0.1:4100` only (host port 4000 was already used by another service on that machine); Postgres and Redis are bound to loopback as well.
 - **Production settings.** `NODE_ENV=production`, newly generated JWT secrets and database password, `CLIENT_ORIGIN` set to the site's own origin instead of `*`, and `restart: unless-stopped` on all three services. Docker, nginx and cloudflared are enabled at boot.
 
-**Queued for the server environment:** the 49-check integration suite, the typing / presence / DM / file-upload / rate-limit browser checks, the Redis-outage check, and a real reboot test (boot-time services are enabled but a reboot has not been exercised). Also open: confirming how client IPs are seen behind nginx and the tunnel, i.e. whether the backend trusts the proxy's forwarded address. Until that is confirmed, the IP-keyed limiters (login, and any request without a valid token) may see every client as one address.
+**Still open:** confirming how client IPs are seen behind nginx and the tunnel, i.e. whether the backend trusts the proxy's forwarded address. Until that is confirmed, the IP-keyed limiters (login, and any request without a valid token) may see every client as one address.
 
 ## Scaling notes
 

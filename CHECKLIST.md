@@ -18,11 +18,12 @@ covered by step 3 below except where step 4 says otherwise. Redis-outage
 behavior (fail-open rate limiting, presence degrading independently of
 messaging, and a self-healing reconcile pass - see `ARCHITECTURE.md`,
 "Redis outage behaviour") has since been implemented and is covered by the
-new manual check in step 6, not yet run against a real outage. Still open:
+manual check in step 6, which was run against a real outage on the test
+deployment. Still open:
 a dedicated pass on notification-concurrency edge cases.
 
-A later correctness pass fixed six more things, none of them yet re-run in
-a real browser: the frontend loads the Socket.IO client from the backend
+A later correctness pass fixed six more things, since re-run in a real
+browser (see `CHANGES.md` and the real-server pass): the frontend loads the Socket.IO client from the backend
 instead of a public CDN (a blocked or slow CDN left `io` undefined and the
 UI stuck with an empty channel list right after login), the client's socket
 re-authentication is derived from the access token's real expiry instead of
